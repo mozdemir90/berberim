@@ -30,8 +30,6 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     db.add(user)
     await db.commit()
     await db.refresh(user)
-    # uuid to str conversion required for pydantic
-    user.id = str(user.id)
     return user
 
 @router.post("/login", response_model=Token)

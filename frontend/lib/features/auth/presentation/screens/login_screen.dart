@@ -33,9 +33,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authProvider);
 
     ref.listen<AuthState>(authProvider, (previous, next) {
-      if (next.status == AuthStatus.error) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.errorMessage ?? 'Giriş hatası')),
+      if (next.status == AuthStatus.error && next.errorMessage != null) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Giriş Hatası'),
+            content: Text(next.errorMessage!.replaceAll('Exception: ', '')),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Tamam'),
+              )
+            ],
+          ),
         );
       } else if (next.status == AuthStatus.authenticated) {
         context.go('/');

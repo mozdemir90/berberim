@@ -35,9 +35,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final authState = ref.watch(authProvider);
 
     ref.listen<AuthState>(authProvider, (previous, next) {
-      if (next.status == AuthStatus.error) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.errorMessage ?? 'Kayıt hatası')),
+      if (next.status == AuthStatus.error && next.errorMessage != null) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Kayıt Hatası'),
+            content: Text(next.errorMessage!.replaceAll('Exception: ', '')),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Tamam'),
+              )
+            ],
+          ),
         );
       } else if (next.status == AuthStatus.authenticated) {
         context.go('/');

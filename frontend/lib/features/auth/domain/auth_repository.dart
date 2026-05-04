@@ -22,7 +22,17 @@ class AuthRepository {
       );
       return response.data;
     } on DioException catch (e) {
-      throw Exception((e.response?.data as Map?)?['detail'] ?? 'Giriş başarısız oldu.');
+      if (e.response != null && e.response!.data is Map) {
+        final detail = e.response!.data['detail'];
+        if (detail is String) {
+          throw Exception(detail);
+        } else if (detail is List && detail.isNotEmpty) {
+           throw Exception(detail.first['msg'] ?? 'Doğrulama hatası');
+        }
+      }
+      throw Exception('Giriş başarısız oldu: ${e.message}');
+    } catch (e) {
+      throw Exception('Beklenmeyen bir hata oluştu: $e');
     }
   }
 
@@ -38,7 +48,17 @@ class AuthRepository {
       );
       return response.data;
     } on DioException catch (e) {
-      throw Exception((e.response?.data as Map?)?['detail'] ?? 'Kayıt başarısız oldu.');
+      if (e.response != null && e.response!.data is Map) {
+        final detail = e.response!.data['detail'];
+        if (detail is String) {
+          throw Exception(detail);
+        } else if (detail is List && detail.isNotEmpty) {
+           throw Exception(detail.first['msg'] ?? 'Doğrulama hatası');
+        }
+      }
+      throw Exception('Kayıt başarısız oldu: ${e.message}');
+    } catch (e) {
+       throw Exception('Beklenmeyen bir hata oluştu: $e');
     }
   }
 }

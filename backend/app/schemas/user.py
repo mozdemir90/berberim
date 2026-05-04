@@ -8,8 +8,10 @@ class UserCreate(BaseModel):
     role: UserRole = UserRole.BARBER
     phone: Optional[str] = None
 
+from uuid import UUID
+
 class UserOut(BaseModel):
-    id: str
+    id: UUID
     email: Optional[EmailStr]
     role: UserRole
     phone: Optional[str]
