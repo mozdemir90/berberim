@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'core/routing/app_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,35 +28,6 @@ class BerberApp extends ConsumerWidget {
         useMaterial3: true,
       ),
       routerConfig: goRouter,
-    );
-  }
-}
-
-// core/routing/app_router.dart'a taşınacak yapı
-final routerProvider = Provider<GoRouter>((ref) {
-  return GoRouter(
-    initialLocation: '/',
-    routes: [
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const HomeScreen(),
-      ),
-      // Diğer rotalar: /login, /shop/:id, /appointments vb.
-    ],
-  );
-});
-
-// Geçici HomeScreen
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Berber Uygulaması Anasayfa')),
-      body: const Center(
-        child: Text('Uygulama İskeleti Hazır!'),
-      ),
     );
   }
 }

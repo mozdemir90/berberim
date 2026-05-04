@@ -7,7 +7,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
 
     # DATABASE
-    SQLALCHEMY_DATABASE_URI: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/berber_db"
+    # Testing for sandbox environments using default postgres config if available
+    SQLALCHEMY_DATABASE_URI: str = "postgresql+asyncpg://postgres:@localhost:5432/berber_db"
 
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = ["*"]
