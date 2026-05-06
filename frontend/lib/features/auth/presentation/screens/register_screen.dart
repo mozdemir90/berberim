@@ -50,7 +50,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ),
         );
       } else if (next.status == AuthStatus.authenticated) {
-        context.go('/');
+        if (next.role == 'BARBER') {
+          context.go('/barber');
+        } else {
+          context.go('/customer');
+        }
       }
     });
 

@@ -42,7 +42,7 @@ async def login(db: AsyncSession = Depends(get_db), form_data: OAuth2PasswordReq
         raise HTTPException(status_code=400, detail="Inactive user")
 
     access_token = create_access_token(subject=str(user.id))
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "token_type": "bearer", "role": user.role}
 
 @router.post("/otp/send")
 async def send_otp(phone: str):

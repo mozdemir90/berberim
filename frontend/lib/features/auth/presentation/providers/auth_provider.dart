@@ -17,22 +17,26 @@ enum AuthStatus { initial, unauthenticated, authenticated, loading, error }
 class AuthState {
   final AuthStatus status;
   final String? token;
+  final String? role;
   final String? errorMessage;
 
   AuthState({
     required this.status,
     this.token,
+    this.role,
     this.errorMessage,
   });
 
   AuthState copyWith({
     AuthStatus? status,
     String? token,
+    String? role,
     String? errorMessage,
   }) {
     return AuthState(
       status: status ?? this.status,
       token: token ?? this.token,
+      role: role ?? this.role,
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }
@@ -48,9 +52,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> _checkToken() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
+    final role = prefs.getString('user_role');
 
     if (token != null) {
-      state = state.copyWith(status: AuthStatus.authenticated, token: token);
+      state = state.copyWith(status: AuthStatus.authenticated, token: token, role: role);
     } else {
       state = state.copyWith(status: AuthStatus.unauthenticated);
     }
@@ -62,10 +67,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final result = await _authRepository.login(email, password);
 
       final token = result['access_token'];
+      final role = result['role'] ?? 'CUSTOMER';
+
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('access_token', token);
+      await prefs.setString('user_role', role);
 
-      state = state.copyWith(status: AuthStatus.authenticated, token: token);
+      state = state.copyWith(status: AuthStatus.authenticated, token: token, role: role);
     } catch (e) {
       state = state.copyWith(
         status: AuthStatus.error,
@@ -92,7 +100,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('access_token');
-    state = state.copyWith(status: AuthStatus.unauthenticated, token: null);
+    await prefs.remove('user_role');
+    state = state.copyWith(status: AuthStatus.unauthenticated, token: null, role: null);
   }
 }
 
