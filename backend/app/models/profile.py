@@ -47,4 +47,5 @@ class BarberShop(Base):
     average_rating = Column(Float, default=0.0)
     is_open = Column(Boolean, default=True)
 
-    owner = relationship("User", backref="barber_shops")
+    owner = relationship("User", back_populates="barber_shops")
+    services = relationship("Service", back_populates="shop", cascade="all, delete-orphan")

@@ -7,6 +7,9 @@ from app.db.session import get_db
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
 
+from sqlalchemy.future import select
+from app.models.user import User
+
 async def get_current_user(
     db: AsyncSession = Depends(get_db), token: str = Depends(oauth2_scheme)
 ):
@@ -23,13 +26,14 @@ async def get_current_user(
     except JWTError:
         raise credentials_exception
 
-    # Gerçek uygulamada DB'den kullanıcı sorgulanır
-    # user = await db.execute(select(User).where(User.id == user_id))
-    # user = user.scalar_one_or_none()
-    # if user is None:
-    #     raise credentials_exception
+    # Gerçek DB sorgusu
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    
+    if user is None:
+        raise credentials_exception
 
-    return {"id": user_id, "role": "CUSTOMER"} # Mock user
+    return user
 
 async def get_current_active_user(
     current_user: dict = Depends(get_current_user),

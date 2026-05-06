@@ -40,7 +40,7 @@ class ShopUpdate(BaseModel):
 class ShopOut(ShopBase):
     id: UUID
     owner_id: UUID
-    average_rating: float
+    average_rating: Optional[float] = 0.0
     services: List[ServiceOut] = []
 
     class Config:

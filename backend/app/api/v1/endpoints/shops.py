@@ -24,7 +24,7 @@ async def list_shops(
         query = query.where(BarberShop.name.ilike(f"%{search}%"))
     query = query.offset(skip).limit(limit)
     result = await db.execute(query)
-    shops = result.scalars().all()
+    shops = list(result.scalars().all())
     return shops
 
 @router.post("/", response_model=ShopOut)
@@ -48,7 +48,12 @@ async def create_shop(
     )
     db.add(shop)
     await db.commit()
-    await db.refresh(shop)
+    
+    # Eagerly load services to avoid MissingGreenlet error during serialization
+    query = select(BarberShop).options(selectinload(BarberShop.services)).where(BarberShop.id == shop.id)
+    result = await db.execute(query)
+    shop = result.scalars().first()
+    
     return shop
 
 @router.get("/my", response_model=ShopOut)

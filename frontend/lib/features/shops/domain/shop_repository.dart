@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ShopRepository {
   final Dio _dio;
-  final String _baseUrl = 'http://localhost:8000/api/v1/shops';
+  final String _baseUrl = 'http://10.0.2.2:8000/api/v1/shops';
 
   ShopRepository(this._dio);
 
@@ -17,7 +17,7 @@ class ShopRepository {
     try {
       final options = await _getAuthOptions();
       final response = await _dio.get(
-        _baseUrl,
+        '$_baseUrl/',
         queryParameters: search != null && search.isNotEmpty ? {'search': search} : null,
         options: options,
       );
@@ -43,7 +43,7 @@ class ShopRepository {
   Future<Map<String, dynamic>> createShop(Map<String, dynamic> shopData) async {
     try {
       final options = await _getAuthOptions();
-      final response = await _dio.post(_baseUrl, data: shopData, options: options);
+      final response = await _dio.post('$_baseUrl/', data: shopData, options: options);
       return response.data;
     } on DioException catch (e) {
       throw _handleError(e, 'İşletme oluşturulamadı.');

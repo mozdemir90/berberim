@@ -5,6 +5,7 @@ import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/shops/presentation/screens/customer_home_screen.dart';
 import '../../features/shops/presentation/screens/barber_dashboard_screen.dart';
 import '../../features/shops/presentation/screens/shop_detail_screen.dart';
+import '../../features/home/presentation/screens/main_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -28,7 +29,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/customer',
-        builder: (context, state) => const CustomerHomeScreen(),
+        builder: (context, state) => const MainNavigationScreen(),
       ),
       GoRoute(
         path: '/barber',

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/shop_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import 'package:go_router/go_router.dart';
 
 class BarberDashboardScreen extends ConsumerWidget {
   const BarberDashboardScreen({super.key});
@@ -16,70 +17,129 @@ class BarberDashboardScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () {
-              ref.read(authProvider.notifier).logout();
+            onPressed: () async {
+              await ref.read(authProvider.notifier).logout();
+              if (context.mounted) {
+                context.go('/login');
+              }
             },
           )
         ],
       ),
-      body: myShopAsync.when(
-        data: (shop) {
-          if (shop.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('Henüz işletme profilinizi oluşturmadınız.'),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => _showCreateShopDialog(context, ref),
-                    child: const Text('İşletme Oluştur'),
-                  )
-                ],
-              ),
-            );
-          }
-
-          final services = shop['services'] as List<dynamic>? ?? [];
-
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Dükkan: ${shop['name']}', style: Theme.of(context).textTheme.titleLarge),
-                Text('Adres: ${shop['address']}'),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Hizmetlerim', style: Theme.of(context).textTheme.titleMedium),
-                    IconButton(
-                      icon: const Icon(Icons.add),
-                      onPressed: () => _showAddServiceDialog(context, ref, shop['id']),
-                    )
-                  ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 16),
+            Center(
+              child: ColorFiltered(
+                colorFilter: const ColorFilter.mode(Colors.white, BlendMode.multiply),
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  height: 180,
+                  color: const Color(0xFF1E3A5F),
+                  colorBlendMode: BlendMode.lighten,
+                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.shield, size: 80, color: Color(0xFF1D8B96)),
                 ),
-                const Divider(),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: services.length,
-                    itemBuilder: (context, index) {
-                      final service = services[index];
-                      return ListTile(
-                        title: Text(service['translation_key']),
-                        subtitle: Text('${service['duration_minutes']} dk'),
-                        trailing: Text('${service['price']} ${service['currency']}'),
-                      );
-                    },
-                  ),
-                )
-              ],
+              ),
             ),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, st) => Center(child: Text('Hata: $e')),
+            const SizedBox(height: 16),
+            Expanded(
+              child: myShopAsync.when(
+                data: (shop) {
+                  if (shop.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'Henüz işletme profilinizi oluşturmadınız.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 16),
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton(
+                            onPressed: () => _showCreateShopDialog(context, ref),
+                            child: const Text('İşletme Oluştur'),
+                          )
+                        ],
+                      ),
+                    );
+                  }
+
+                  final services = shop['services'] as List<dynamic>? ?? [];
+
+                  return Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Dükkan: ${shop['name']}',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                color: const Color(0xFF1E3A5F),
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                        Text(
+                          'Adres: ${shop['address']}',
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Hizmetlerim', style: Theme.of(context).textTheme.titleMedium),
+                            IconButton(
+                              icon: const Icon(Icons.add),
+                              onPressed: () => _showAddServiceDialog(context, ref, shop['id']),
+                            )
+                          ],
+                        ),
+                        const Divider(),
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: services.length,
+                            itemBuilder: (context, index) {
+                              final service = services[index];
+                              return ListTile(
+                                title: Text(service['translation_key']),
+                                subtitle: Text('${service['duration_minutes']} dk'),
+                                trailing: Text('${service['price']} ${service['currency']}'),
+                              );
+                            },
+                          ),
+                        )
+                      ],
+                    ),
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, st) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        child: Text(
+                          'Hata: $e',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: () => ref.invalidate(myShopProvider),
+                        child: const Text('Tekrar Dene'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -148,6 +208,8 @@ class BarberDashboardScreen extends ConsumerWidget {
               TextField(
                 controller: nameController,
                 decoration: const InputDecoration(labelText: 'Hizmet Adı (Örn: Saç Kesimi)'),
+                textCapitalization: TextCapitalization.words,
+                keyboardType: TextInputType.text,
               ),
               TextField(
                 controller: priceController,

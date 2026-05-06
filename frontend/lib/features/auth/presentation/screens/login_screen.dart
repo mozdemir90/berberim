@@ -60,11 +60,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       appBar: AppBar(title: const Text('Giriş Yap')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 40),
+              Center(
+                child: ColorFiltered(
+                  colorFilter: const ColorFilter.mode(Colors.white, BlendMode.multiply),
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    height: 240,
+                    color: const Color(0xFF1E3A5F),
+                    colorBlendMode: BlendMode.lighten,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
+              TextField(
               controller: _emailController,
               decoration: const InputDecoration(labelText: 'E-posta'),
               keyboardType: TextInputType.emailAddress,
@@ -105,6 +119,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: const Text('Hesabın yok mu? Kayıt Ol'),
             ),
           ],
+          ),
         ),
       ),
     );

@@ -4,7 +4,8 @@ class AuthRepository {
   final Dio _dio;
 
   // baseUrl, .env veya Config'den alınmalıdır.
-  final String _baseUrl = 'http://localhost:8000/api/v1/auth';
+  // Android emülatörde host makineye erişmek için 10.0.2.2 kullanılmalıdır.
+  final String _baseUrl = 'http://10.0.2.2:8000/api/v1/auth';
 
   AuthRepository(this._dio);
 

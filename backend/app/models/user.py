@@ -1,6 +1,7 @@
 import uuid
 from sqlalchemy import Column, String, Boolean, Enum, DateTime
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 from app.db.session import Base
 import datetime
 import enum
@@ -16,6 +17,7 @@ class User(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     role = Column(Enum(UserRole), nullable=False)
     email = Column(String, unique=True, index=True, nullable=True)
+    barber_shops = relationship("BarberShop", back_populates="owner")
     phone = Column(String, unique=True, index=True, nullable=True)
     password_hash = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)

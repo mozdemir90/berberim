@@ -27,7 +27,7 @@ class Service(Base):
     price = Column(Numeric(10, 2), nullable=False)
     currency = Column(String, default="TRY")
 
-    shop = relationship("BarberShop", backref="services")
+    shop = relationship("BarberShop", back_populates="services")
 
 class Translation(Base):
     __tablename__ = "translations"
