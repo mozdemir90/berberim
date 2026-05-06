@@ -13,19 +13,16 @@ class ProfileScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E3A5F),
         elevation: 0,
+        automaticallyImplyLeading: false,
         title: Row(
           children: [
-            ColorFiltered(
-              colorFilter: const ColorFilter.mode(Colors.white, BlendMode.multiply),
-              child: Image.asset(
-                'assets/images/logo.png',
-                height: 35,
-                color: Colors.white,
-                colorBlendMode: BlendMode.lighten,
-              ),
+            Image.asset(
+              'assets/images/logo.png',
+              height: 30,
+              errorBuilder: (context, error, stackTrace) => const Icon(Icons.person_outline, color: Colors.white),
             ),
-            const SizedBox(width: 8),
-            const Text('Profilim', style: TextStyle(color: Colors.white, fontSize: 18)),
+            const SizedBox(width: 10),
+            const Text('Profilim', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -47,9 +44,9 @@ class ProfileScreen extends ConsumerWidget {
             ]),
             const SizedBox(height: 32),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SizedBox(
-                width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 300),
                 child: ElevatedButton(
                   onPressed: () async {
                     await ref.read(authProvider.notifier).logout();
@@ -60,9 +57,9 @@ class ProfileScreen extends ConsumerWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.red,
-                    side: const BorderSide(color: Colors.red),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    side: const BorderSide(color: Colors.red, width: 1.5),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   ),
                   child: const Text('Çıkış Yap', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
@@ -102,15 +99,16 @@ class ProfileScreen extends ConsumerWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: const [
                 Text(
                   'Fırat Yılmaz',
-                  style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 4),
+                SizedBox(height: 2),
                 Text(
                   'firat@hotmail.com',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                  style: TextStyle(color: Colors.white70, fontSize: 13),
                 ),
               ],
             ),

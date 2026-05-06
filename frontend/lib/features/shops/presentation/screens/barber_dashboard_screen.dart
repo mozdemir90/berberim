@@ -31,15 +31,10 @@ class BarberDashboardScreen extends ConsumerWidget {
           children: [
             const SizedBox(height: 16),
             Center(
-              child: ColorFiltered(
-                colorFilter: const ColorFilter.mode(Colors.white, BlendMode.multiply),
-                child: Image.asset(
-                  'assets/images/logo.png',
-                  height: 180,
-                  color: const Color(0xFF1E3A5F),
-                  colorBlendMode: BlendMode.lighten,
-                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.shield, size: 80, color: Color(0xFF1D8B96)),
-                ),
+              child: Image.asset(
+                'assets/images/logo.png',
+                height: 120,
+                errorBuilder: (context, error, stackTrace) => const Icon(Icons.cut, size: 80, color: Color(0xFF1D8B96)),
               ),
             ),
             const SizedBox(height: 16),
@@ -160,6 +155,7 @@ class BarberDashboardScreen extends ConsumerWidget {
                 controller: nameController,
                 decoration: const InputDecoration(labelText: 'Dükkan Adı'),
               ),
+              const SizedBox(height: 16),
               TextField(
                 controller: addressController,
                 decoration: const InputDecoration(labelText: 'Adres'),
@@ -209,13 +205,14 @@ class BarberDashboardScreen extends ConsumerWidget {
                 controller: nameController,
                 decoration: const InputDecoration(labelText: 'Hizmet Adı (Örn: Saç Kesimi)'),
                 textCapitalization: TextCapitalization.words,
-                keyboardType: TextInputType.text,
               ),
+              const SizedBox(height: 16),
               TextField(
                 controller: priceController,
                 decoration: const InputDecoration(labelText: 'Fiyat (TL)'),
                 keyboardType: TextInputType.number,
               ),
+              const SizedBox(height: 16),
               TextField(
                 controller: durationController,
                 decoration: const InputDecoration(labelText: 'Süre (Dakika)'),

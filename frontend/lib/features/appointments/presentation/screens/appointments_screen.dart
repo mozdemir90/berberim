@@ -14,19 +14,16 @@ class AppointmentsScreen extends ConsumerWidget {
         appBar: AppBar(
           backgroundColor: const Color(0xFF1E3A5F),
           elevation: 0,
+          automaticallyImplyLeading: false,
           title: Row(
             children: [
-              ColorFiltered(
-                colorFilter: const ColorFilter.mode(Colors.white, BlendMode.multiply),
-                child: Image.asset(
-                  'assets/images/logo.png',
-                  height: 30,
-                  color: Colors.white,
-                  colorBlendMode: BlendMode.lighten,
-                ),
+              Image.asset(
+                'assets/images/logo.png',
+                height: 30,
+                errorBuilder: (context, error, stackTrace) => const Icon(Icons.calendar_month_outlined, color: Colors.white),
               ),
-              const SizedBox(width: 8),
-              const Text('Randevularım', style: TextStyle(color: Colors.white, fontSize: 18)),
+              const SizedBox(width: 10),
+              const Text('Randevularım', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
             ],
           ),
           actions: [

@@ -12,25 +12,25 @@ class CustomerHomeScreen extends ConsumerWidget {
     final shopsAsyncValue = ref.watch(shopsProvider);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFF8FAFC),
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
             pinned: true,
+            expandedHeight: 60,
             backgroundColor: const Color(0xFF1E3A5F),
             title: Row(
               children: [
-                ColorFiltered(
-                  colorFilter: const ColorFilter.mode(Colors.white, BlendMode.multiply),
-                  child: Image.asset(
-                    'assets/images/logo.png',
-                    height: 30,
-                    color: Colors.white,
-                    colorBlendMode: BlendMode.lighten,
-                  ),
+                Image.asset(
+                  'assets/images/logo.png',
+                  height: 30,
+                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.cut, color: Colors.white),
                 ),
-                const SizedBox(width: 8),
-                const Text('Berber Keşfet', style: TextStyle(color: Colors.white, fontSize: 18)),
+                const SizedBox(width: 10),
+                const Text(
+                  'Berberim',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
+                ),
               ],
             ),
             actions: [
@@ -49,41 +49,87 @@ class CustomerHomeScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Hero Banner
+                Container(
+                  margin: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(24),
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1E3A5F), Color(0xFF1D8B96)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF1D8B96).withOpacity(0.3),
+                        blurRadius: 15,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Berberim\'e Hoş Geldiniz',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Size en yakın ve en iyi berberleri keşfedin.',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () {},
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: const Color(0xFF1E3A5F),
+                          minimumSize: const Size(120, 40),
+                        ),
+                        child: const Text('Randevu Al'),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Search Bar
                 Padding(
-                  padding: const EdgeInsets.all(12.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: TextField(
                     decoration: InputDecoration(
-                      hintText: 'Berber Ara...',
-                      prefixIcon: const Icon(Icons.search),
+                      hintText: 'Berber veya Hizmet Ara...',
+                      prefixIcon: const Icon(Icons.search, color: Color(0xFF1D8B96)),
                       filled: true,
                       fillColor: Colors.white,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(15),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                     onChanged: (value) {
                       ref.read(searchQueryProvider.notifier).state = value;
                     },
                   ),
                 ),
+
                 const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  padding: EdgeInsets.fromLTRB(20, 20, 20, 12),
                   child: Text(
-                    'Son Ziyaretlerim',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E3A5F),
-                    ),
-                  ),
-                ),
-                _buildRecentVisits(),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-                  child: Text(
-                    'Tüm Berberler',
+                    'Popüler Berberler',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -100,32 +146,29 @@ class CustomerHomeScreen extends ConsumerWidget {
                 return const SliverToBoxAdapter(
                   child: Center(
                     child: Padding(
-                      padding: EdgeInsets.only(top: 60),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.storefront_outlined, size: 64, color: Colors.grey),
-                          SizedBox(height: 16),
-                          Text('Henüz kayıtlı berber bulunamadı.', style: TextStyle(color: Colors.grey)),
-                        ],
-                      ),
+                      padding: EdgeInsets.symmetric(vertical: 60),
+                      child: Text('Aradığınız kriterde berber bulunamadı.'),
                     ),
                   ),
                 );
               }
-              return SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final shop = shops[index];
-                    return _buildShopCard(context, shop);
-                  },
-                  childCount: shops.length,
+              return SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final shop = shops[index];
+                      return _buildShopCard(context, shop);
+                    },
+                    childCount: shops.length,
+                  ),
                 ),
               );
             },
             loading: () => const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator())),
             error: (e, st) => SliverToBoxAdapter(child: Center(child: Text('Hata: $e'))),
           ),
+          const SliverToBoxAdapter(child: SizedBox(height: 20)),
         ],
       ),
     );

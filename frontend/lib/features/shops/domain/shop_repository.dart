@@ -1,9 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/network/api_constants.dart';
 
 class ShopRepository {
   final Dio _dio;
-  final String _baseUrl = 'http://10.0.2.2:8000/api/v1/shops';
+  final String _baseUrl = '${ApiConstants.baseUrl}/shops';
 
   ShopRepository(this._dio);
 

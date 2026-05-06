@@ -47,25 +47,19 @@ class HomeDashboardScreen extends ConsumerWidget {
   Widget _buildAppBar(BuildContext context, WidgetRef ref) {
     return SliverAppBar(
       pinned: true,
+      expandedHeight: 60,
       backgroundColor: const Color(0xFF1E3A5F),
       title: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
+          Image.asset(
+            'assets/images/logo.png',
             height: 30,
-            child: ColorFiltered(
-              colorFilter: const ColorFilter.mode(Colors.white, BlendMode.multiply),
-              child: Image.asset(
-                'assets/images/logo.png',
-                color: Colors.white,
-                colorBlendMode: BlendMode.lighten,
-              ),
-            ),
+            errorBuilder: (context, error, stackTrace) => const Icon(Icons.home, color: Colors.white),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           const Text(
             'Berberim',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
           ),
         ],
       ),

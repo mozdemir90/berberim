@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/shops/presentation/screens/customer_home_screen.dart';
-import '../../features/shops/presentation/screens/barber_dashboard_screen.dart';
+import '../../features/shops/presentation/screens/barber_main_screen.dart';
 import '../../features/shops/presentation/screens/shop_detail_screen.dart';
 import '../../features/home/presentation/screens/main_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -33,7 +33,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/barber',
-        builder: (context, state) => const BarberDashboardScreen(),
+        builder: (context, state) => const BarberMainNavigationScreen(),
       ),
       GoRoute(
         path: '/shop/:id',

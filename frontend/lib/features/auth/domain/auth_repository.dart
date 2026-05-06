@@ -1,11 +1,10 @@
 import 'package:dio/dio.dart';
+import '../../../core/network/api_constants.dart';
 
 class AuthRepository {
   final Dio _dio;
 
-  // baseUrl, .env veya Config'den alınmalıdır.
-  // Android emülatörde host makineye erişmek için 10.0.2.2 kullanılmalıdır.
-  final String _baseUrl = 'http://10.0.2.2:8000/api/v1/auth';
+  final String _baseUrl = '${ApiConstants.baseUrl}/auth';
 
   AuthRepository(this._dio);
 
