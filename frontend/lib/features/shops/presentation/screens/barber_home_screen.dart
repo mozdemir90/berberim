@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/shop_provider.dart';
+import '../../../appointments/presentation/providers/appointment_provider.dart';
+import 'package:intl/intl.dart';
 
 class BarberHomeScreen extends ConsumerWidget {
   const BarberHomeScreen({super.key});
@@ -8,6 +10,14 @@ class BarberHomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final myShopAsync = ref.watch(myShopProvider);
+    final stats = ref.watch(barberStatsProvider);
+    final allAppointments = ref.watch(barberAppointmentsProvider);
+    
+    final now = DateTime.now();
+    final upcomingAppointments = allAppointments.where((app) => 
+      app.date.day == now.day && 
+      (app.status == 'Onaylandı' || app.status == 'Bekliyor')
+    ).toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -39,17 +49,17 @@ class BarberHomeScreen extends ConsumerWidget {
                   // Stats Cards
                   Row(
                     children: [
-                      _buildStatCard('Bugün', '12', Icons.calendar_today, Colors.blue),
+                      _buildStatCard('Randevu', '${stats.totalAppointments}', Icons.calendar_today, Colors.blue),
                       const SizedBox(width: 12),
-                      _buildStatCard('Kazanç', '₺1,450', Icons.payments_outlined, Colors.green),
+                      _buildStatCard('Kazanç', '₺${NumberFormat('#,###').format(stats.totalEarnings)}', Icons.payments_outlined, Colors.green),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      _buildStatCard('Bekleyen', '3', Icons.hourglass_empty, Colors.orange),
+                      _buildStatCard('Bekleyen', '${allAppointments.where((a) => a.status == 'Bekliyor').length}', Icons.hourglass_empty, Colors.orange),
                       const SizedBox(width: 12),
-                      _buildStatCard('Puan', '4.9', Icons.star_border, Colors.purple),
+                      _buildStatCard('Puan', '${stats.averageRating}', Icons.star_border, Colors.purple),
                     ],
                   ),
                   
@@ -60,8 +70,13 @@ class BarberHomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   
-                  _buildNextAppointment('Ahmet Yılmaz', '14:30', 'Saç Kesimi'),
-                  _buildNextAppointment('Mehmet Can', '15:15', 'Sakal Traşı'),
+                  if (upcomingAppointments.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Center(child: Text('Yakın zamanda randevu bulunmuyor.', style: TextStyle(color: Colors.grey))),
+                    )
+                  else
+                    ...upcomingAppointments.map((app) => _buildNextAppointment(app.clientName, app.time, app.services)).toList(),
                 ],
               ),
             ),

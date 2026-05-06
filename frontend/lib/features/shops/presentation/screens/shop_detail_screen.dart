@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../appointments/presentation/screens/booking_screen.dart';
 
 class ShopDetailScreen extends StatelessWidget {
   final Map<String, dynamic> shop;
@@ -59,15 +60,17 @@ class ShopDetailScreen extends StatelessWidget {
                   const SizedBox(height: 32),
                   ElevatedButton(
                     onPressed: () {
-                      // TODO: Randevu / Sıra alma ekranına git
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Sıra alma yakında eklenecek!')),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BookingScreen(shop: shop),
+                        ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 50),
                     ),
-                    child: const Text('Sıraya Gir / Randevu Al'),
+                    child: const Text('Randevu Al'),
                   )
                 ],
               ),
