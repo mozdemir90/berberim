@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../auth/presentation/providers/auth_provider.dart';
+
 class HomeDashboardScreen extends ConsumerWidget {
   const HomeDashboardScreen({super.key});
 
@@ -11,7 +13,7 @@ class HomeDashboardScreen extends ConsumerWidget {
       backgroundColor: Colors.grey[50],
       body: CustomScrollView(
         slivers: [
-          _buildAppBar(context),
+          _buildAppBar(context, ref),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -42,38 +44,40 @@ class HomeDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAppBar(BuildContext context) {
+  Widget _buildAppBar(BuildContext context, WidgetRef ref) {
     return SliverAppBar(
-      expandedHeight: 120.0,
-      floating: false,
       pinned: true,
       backgroundColor: const Color(0xFF1E3A5F),
-      flexibleSpace: FlexibleSpaceBar(
-        titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
-        title: Row(
-          children: [
-            ColorFiltered(
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            height: 30,
+            child: ColorFiltered(
               colorFilter: const ColorFilter.mode(Colors.white, BlendMode.multiply),
               child: Image.asset(
                 'assets/images/logo.png',
-                height: 40,
                 color: Colors.white,
                 colorBlendMode: BlendMode.lighten,
               ),
             ),
-            const SizedBox(width: 8),
-            const Text('Berberim', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ],
-        ),
+          ),
+          const SizedBox(width: 8),
+          const Text(
+            'Berberim',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+        ],
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.notifications_none, color: Colors.white),
-          onPressed: () {},
-        ),
-        IconButton(
-          icon: const Icon(Icons.person_outline, color: Colors.white),
-          onPressed: () {},
+          icon: const Icon(Icons.logout, color: Colors.white),
+          onPressed: () async {
+            await ref.read(authProvider.notifier).logout();
+            if (context.mounted) {
+              context.go('/login');
+            }
+          },
         ),
       ],
     );

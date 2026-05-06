@@ -1,22 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
-class AppointmentsScreen extends StatelessWidget {
+class AppointmentsScreen extends ConsumerWidget {
   const AppointmentsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: const Color(0xFF1E3A5F),
+          elevation: 0,
           title: Row(
             children: [
               ColorFiltered(
                 colorFilter: const ColorFilter.mode(Colors.white, BlendMode.multiply),
                 child: Image.asset(
                   'assets/images/logo.png',
-                  height: 35,
+                  height: 30,
                   color: Colors.white,
                   colorBlendMode: BlendMode.lighten,
                 ),
@@ -25,6 +29,17 @@ class AppointmentsScreen extends StatelessWidget {
               const Text('Randevularım', style: TextStyle(color: Colors.white, fontSize: 18)),
             ],
           ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout, color: Colors.white),
+              onPressed: () async {
+                await ref.read(authProvider.notifier).logout();
+                if (context.mounted) {
+                  context.go('/login');
+                }
+              },
+            ),
+          ],
           bottom: const TabBar(
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white70,
