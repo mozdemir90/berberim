@@ -10,6 +10,7 @@ from app.models.user import User
 from app.models.appointment import Appointment, AppointmentType, AppointmentStatus
 from app.models.shop_services import Service
 from app.schemas.appointment import AppointmentCreate, AppointmentOut, AppointmentUpdate
+from app.api.v1.endpoints.websocket import manager
 
 router = APIRouter()
 
@@ -94,6 +95,17 @@ async def book_appointment(
     )
     appointment_out = result.scalar_one()
 
+    # Broadcast to WebSocket
+    await manager.broadcast_json(
+        str(appointment_out.shop_id),
+        {
+            "event": "appointment_booked",
+            "appointment_id": str(appointment_out.id),
+            "type": appointment_out.type,
+            "queue_number": appointment_out.queue_number,
+        }
+    )
+
     return appointment_out
 
 @router.get("/me", response_model=List[AppointmentOut])
@@ -155,5 +167,16 @@ async def update_appointment_status(
         select(Appointment).options(selectinload(Appointment.services)).where(Appointment.id == appointment.id)
     )
     appointment_out = result.scalar_one()
+
+    # Broadcast status change
+    await manager.broadcast_json(
+        str(appointment_out.shop_id),
+        {
+            "event": "appointment_status_changed",
+            "appointment_id": str(appointment_out.id),
+            "status": appointment_out.status,
+            "queue_number": appointment_out.queue_number,
+        }
+    )
 
     return appointment_out
