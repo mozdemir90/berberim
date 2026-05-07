@@ -11,7 +11,9 @@ class BarberHomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final myShopAsync = ref.watch(myShopProvider);
     final stats = ref.watch(barberStatsProvider);
-    final allAppointments = ref.watch(barberAppointmentsProvider);
+    final allAppointmentsAsync = ref.watch(barberAppointmentsProvider);
+    
+    final allAppointments = allAppointmentsAsync.value ?? [];
     
     final now = DateTime.now();
     final upcomingAppointments = allAppointments.where((app) => 
@@ -70,7 +72,12 @@ class BarberHomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   
-                  if (upcomingAppointments.isEmpty)
+                  if (allAppointmentsAsync.isLoading)
+                    const Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (upcomingAppointments.isEmpty)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 20),
                       child: Center(child: Text('Yakın zamanda randevu bulunmuyor.', style: TextStyle(color: Colors.grey))),

@@ -368,8 +368,8 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
             itemBuilder: (context, index) {
               final time = times[index];
               final isSelected = state.selectedTime == time;
-              
-              final allAppointments = ref.watch(barberAppointmentsProvider);
+              final allAppointmentsAsync = ref.watch(shopAppointmentsProvider(widget.shop['id']));
+              final allAppointments = allAppointmentsAsync.value ?? [];
               final selectedStaffName = state.selectedStaff?['name'] ?? 'Herhangi Biri';
               final selectedDate = state.selectedDate ?? now;
               
@@ -468,33 +468,47 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     );
   }
 
-  void _handleNext() {
+  Future<void> _handleNext() async {
     if (_currentStep < 2) {
       setState(() => _currentStep++);
       _pageController.animateToPage(_currentStep, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
     } else {
       final state = ref.read(bookingProvider);
       
-      // Create new appointment object
-      final newAppointment = Appointment(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        clientName: 'Müşteri (Siz)',
-        barberName: state.selectedStaff?['name'] ?? 'Herhangi Biri',
-        shopName: widget.shop['name'] ?? 'Berberim',
-        services: state.selectedServices.isNotEmpty 
-            ? state.selectedServices.map((s) => s['translation_key'] ?? 'Hizmet').join(', ')
-            : 'Belirtilmedi',
-        time: state.selectedTime ?? '--:--',
-        price: '₺${state.totalAmount.toInt()}',
-        status: 'Bekliyor',
-        statusColor: Colors.orange,
-        date: state.selectedDate ?? DateTime.now(),
-      );
+      try {
+        final shopId = widget.shop['id'];
+        final serviceIds = state.selectedServices.map((s) => s['id'].toString()).toList();
+        final staffId = state.selectedStaff?['id']?.toString();
+        
+        String? scheduledTimeIso;
+        if (state.selectedDate != null && state.selectedTime != null) {
+          final timeParts = state.selectedTime!.split(':');
+          final scheduledTime = DateTime(
+            state.selectedDate!.year, 
+            state.selectedDate!.month, 
+            state.selectedDate!.day, 
+            int.parse(timeParts[0]), 
+            int.parse(timeParts[1])
+          );
+          scheduledTimeIso = scheduledTime.toUtc().toIso8601String();
+        }
 
-      // Add to global state
-      ref.read(barberAppointmentsProvider.notifier).addAppointment(newAppointment);
-      
-      _showSuccessDialog();
+        await ref.read(barberAppointmentsProvider.notifier).bookAppointment({
+          'shop_id': shopId,
+          'service_ids': serviceIds,
+          'staff_id': staffId,
+          'type': 'SCHEDULED', // Assuming scheduled for now
+          'scheduled_time': scheduledTimeIso,
+        });
+
+        ref.invalidate(shopAppointmentsProvider(shopId));
+
+        _showSuccessDialog();
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Hata: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 

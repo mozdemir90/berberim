@@ -22,48 +22,54 @@ class _CustomerAppointmentsView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final allAppointments = ref.watch(barberAppointmentsProvider);
-    
-    // Geçici çözüm: Müşteri kendi randevularını görebilsin diye 'Müşteri (Siz)' ismine göre filtrelenir
-    final customerAppointments = allAppointments
-        .where((app) => app.clientName == 'Müşteri (Siz)')
-        .toList();
-
-    // Yaklaşan ve geçmiş olarak ikiye ayır
-    final now = DateTime.now();
-    final upcoming = customerAppointments.where((app) => 
-        (app.status == 'Bekliyor' || app.status == 'Onaylandı') && 
-        app.date.isAfter(now.subtract(const Duration(days: 1)))
-    ).toList();
-    
-    final past = customerAppointments.where((app) => 
-        app.status == 'Tamamlandı' || 
-        app.status == 'Reddedildi' || 
-        app.date.isBefore(now.subtract(const Duration(days: 1)))
-    ).toList();
+    final appointmentsAsync = ref.watch(barberAppointmentsProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Randevularım'),
       ),
-      body: customerAppointments.isEmpty
-          ? const Center(child: Text('Randevu bulunmuyor.', style: TextStyle(color: Colors.grey)))
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                if (upcoming.isNotEmpty) ...[
-                  const Text('Yaklaşan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A5F))),
-                  const SizedBox(height: 12),
-                  ...upcoming.map((app) => _buildAppointmentCard(app)),
-                  const SizedBox(height: 24),
-                ],
-                if (past.isNotEmpty) ...[
-                  const Text('Geçmiş', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A5F))),
-                  const SizedBox(height: 12),
-                  ...past.map((app) => _buildAppointmentCard(app)),
-                ],
+      body: appointmentsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Center(child: Text('Hata: $err')),
+        data: (allAppointments) {
+          // Since the endpoint /me only returns customer's own appointments, we don't need to filter by name.
+          final customerAppointments = allAppointments;
+
+          final now = DateTime.now();
+          final upcoming = customerAppointments.where((app) => 
+              (app.status == 'Bekliyor' || app.status == 'Onaylandı') && 
+              app.date.isAfter(now.subtract(const Duration(days: 1)))
+          ).toList();
+          
+          final past = customerAppointments.where((app) => 
+              app.status == 'Tamamlandı' || 
+              app.status == 'Reddedildi' || 
+              app.status == 'İptal' ||
+              app.date.isBefore(now.subtract(const Duration(days: 1)))
+          ).toList();
+
+          if (customerAppointments.isEmpty) {
+            return const Center(child: Text('Randevu bulunmuyor.', style: TextStyle(color: Colors.grey)));
+          }
+
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              if (upcoming.isNotEmpty) ...[
+                const Text('Yaklaşan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A5F))),
+                const SizedBox(height: 12),
+                ...upcoming.map((app) => _buildAppointmentCard(app)),
+                const SizedBox(height: 24),
               ],
-            ),
+              if (past.isNotEmpty) ...[
+                const Text('Geçmiş', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A5F))),
+                const SizedBox(height: 12),
+                ...past.map((app) => _buildAppointmentCard(app)),
+              ],
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -111,6 +117,22 @@ class _CustomerAppointmentsView extends ConsumerWidget {
                 Text(item.price, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1E3A5F))),
               ],
             ),
+            if (item.type == 'LIVE_QUEUE' && item.queueNumber != null && (item.status == 'Bekliyor' || item.status == 'Onaylandı'))
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF7ED),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.people_outline, color: Colors.orange, size: 20),
+                    const SizedBox(width: 8),
+                    Text('Sıranız: ${item.queueNumber}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
@@ -132,12 +154,7 @@ class _BarberScheduleViewState extends ConsumerState<_BarberScheduleView> {
 
   @override
   Widget build(BuildContext context) {
-    final allAppointments = ref.watch(barberAppointmentsProvider);
-    final appointments = allAppointments.where((app) => 
-      app.date.year == selectedDate.year &&
-      app.date.month == selectedDate.month &&
-      app.date.day == selectedDate.day
-    ).toList();
+    final appointmentsAsync = ref.watch(barberAppointmentsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -150,25 +167,37 @@ class _BarberScheduleViewState extends ConsumerState<_BarberScheduleView> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          _buildHorizontalCalendar(),
-          const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Icon(Icons.access_time, size: 20, color: Color(0xFF1D8B96)),
-                SizedBox(width: 8),
-                Text('Randevu Akışı', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ),
-          Expanded(
-            child: isTimelineView 
-                ? _buildTimelineView(appointments)
-                : _buildListView(appointments),
-          ),
-        ],
+      body: appointmentsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Center(child: Text('Hata: $err')),
+        data: (allAppointments) {
+          final appointments = allAppointments.where((app) => 
+            app.date.year == selectedDate.year &&
+            app.date.month == selectedDate.month &&
+            app.date.day == selectedDate.day
+          ).toList();
+
+          return Column(
+            children: [
+              _buildHorizontalCalendar(),
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    Icon(Icons.access_time, size: 20, color: Color(0xFF1D8B96)),
+                    SizedBox(width: 8),
+                    Text('Randevu Akışı', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: isTimelineView 
+                    ? _buildTimelineView(appointments)
+                    : _buildListView(appointments),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

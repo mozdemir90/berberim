@@ -18,6 +18,20 @@ class ServiceOut(ServiceBase):
     class Config:
         from_attributes = True
 
+class StaffBase(BaseModel):
+    name: str
+    is_available: bool = True
+
+class StaffCreate(StaffBase):
+    pass
+
+class StaffOut(StaffBase):
+    id: UUID
+    shop_id: UUID
+
+    class Config:
+        from_attributes = True
+
 class ShopBase(BaseModel):
     name: str
     description: Optional[str] = None
@@ -42,6 +56,7 @@ class ShopOut(ShopBase):
     owner_id: UUID
     average_rating: Optional[float] = 0.0
     services: List[ServiceOut] = []
+    staff: List[StaffOut] = []
 
     class Config:
         from_attributes = True

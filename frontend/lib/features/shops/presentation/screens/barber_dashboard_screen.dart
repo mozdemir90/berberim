@@ -99,7 +99,16 @@ class BarberDashboardScreen extends ConsumerWidget {
                               return ListTile(
                                 title: Text(service['translation_key']),
                                 subtitle: Text('${service['duration_minutes']} dk'),
-                                trailing: Text('${service['price']} ${service['currency']}'),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text('${service['price']} ${service['currency']}'),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                      onPressed: () => _confirmDeleteService(context, ref, shop['id'], service['id'], service['translation_key']),
+                                    ),
+                                  ],
+                                ),
                               );
                             },
                           ),
@@ -330,6 +339,31 @@ class BarberDashboardScreen extends ConsumerWidget {
               final repo = ref.read(shopRepositoryProvider);
               try {
                 await repo.deleteStaff(shopId, staffId);
+                Navigator.pop(context);
+                ref.invalidate(myShopProvider);
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+              }
+            },
+            child: const Text('Sil', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+  void _confirmDeleteService(BuildContext context, WidgetRef ref, String shopId, String serviceId, String serviceName) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hizmeti Sil'),
+        content: Text('$serviceName hizmetini silmek istediğinize emin misiniz?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('İptal')),
+          TextButton(
+            onPressed: () async {
+              final repo = ref.read(shopRepositoryProvider);
+              try {
+                await repo.deleteService(shopId, serviceId);
                 Navigator.pop(context);
                 ref.invalidate(myShopProvider);
               } catch (e) {

@@ -1,7 +1,7 @@
 import uuid
 import enum
 import datetime
-from sqlalchemy import Column, String, Enum, DateTime, ForeignKey, Integer, Text, UniqueConstraint
+from sqlalchemy import Column, String, Enum, DateTime, ForeignKey, Integer, Text, UniqueConstraint, Table
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.db.session import Base
@@ -18,6 +18,13 @@ class AppointmentStatus(str, enum.Enum):
     COMPLETED = "COMPLETED"
     CANCELLED = "CANCELLED"
 
+appointment_services = Table(
+    "appointment_services",
+    Base.metadata,
+    Column("appointment_id", UUID(as_uuid=True), ForeignKey("appointments.id", ondelete="CASCADE"), primary_key=True),
+    Column("service_id", UUID(as_uuid=True), ForeignKey("services.id", ondelete="CASCADE"), primary_key=True),
+)
+
 class Appointment(Base):
     __tablename__ = "appointments"
 
@@ -25,7 +32,6 @@ class Appointment(Base):
     customer_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     shop_id = Column(UUID(as_uuid=True), ForeignKey("barber_shops.id", ondelete="CASCADE"), nullable=False)
     staff_id = Column(UUID(as_uuid=True), ForeignKey("staff.id", ondelete="SET NULL"), nullable=True)
-    service_id = Column(UUID(as_uuid=True), ForeignKey("services.id", ondelete="CASCADE"), nullable=False)
 
     type = Column(Enum(AppointmentType), nullable=False)
     status = Column(Enum(AppointmentStatus), default=AppointmentStatus.PENDING)
@@ -36,7 +42,7 @@ class Appointment(Base):
     customer = relationship("User", backref="appointments")
     shop = relationship("BarberShop", backref="appointments")
     staff = relationship("Staff", backref="appointments")
-    service = relationship("Service")
+    services = relationship("Service", secondary=appointment_services, backref="appointments")
 
 class Review(Base):
     __tablename__ = "reviews"

@@ -36,38 +36,83 @@ async def book_appointment(
         if str(svc.shop_id) != str(appointment_in.shop_id):
             raise HTTPException(status_code=400, detail="Services do not belong to the selected shop.")
 
+    # Strip timezone for PostgreSQL TIMESTAMP WITHOUT TIME ZONE
+    scheduled_time_naive = appointment_in.scheduled_time.replace(tzinfo=None) if appointment_in.scheduled_time else None
+
     new_appointment = Appointment(
         customer_id=current_user.id,
         shop_id=appointment_in.shop_id,
         staff_id=appointment_in.staff_id,
         type=appointment_in.type,
-        scheduled_time=appointment_in.scheduled_time,
+        scheduled_time=scheduled_time_naive,
         status=AppointmentStatus.PENDING
     )
 
     if appointment_in.type == AppointmentType.SCHEDULED:
-        if not appointment_in.scheduled_time:
+        if not scheduled_time_naive:
             raise HTTPException(status_code=400, detail="Scheduled time is required for SCHEDULED type.")
 
         # Conflict check for scheduled appointments
         duration = sum([svc.duration_minutes for svc in services])
-        end_time = appointment_in.scheduled_time + timedelta(minutes=duration)
+        end_time = scheduled_time_naive + timedelta(minutes=duration)
 
-        # Check if there is an overlapping appointment for the same staff
-        # We find appointments that start before new_end and end after new_start
-        # Since we don't store end_time, we will just assume fixed 60 mins for existing appointments or we would have to join services.
-        # For simplicity, let's reject if there's any appointment within 30 mins of start time.
-        conflict_query = select(Appointment).where(
-            Appointment.shop_id == appointment_in.shop_id,
-            Appointment.staff_id == appointment_in.staff_id,
-            Appointment.type == AppointmentType.SCHEDULED,
-            Appointment.status.in_([AppointmentStatus.PENDING, AppointmentStatus.APPROVED]),
-            Appointment.scheduled_time >= appointment_in.scheduled_time - timedelta(minutes=30),
-            Appointment.scheduled_time <= appointment_in.scheduled_time + timedelta(minutes=duration)
-        )
-        conflict_result = await db.execute(conflict_query)
-        if conflict_result.scalars().first():
-            raise HTTPException(status_code=409, detail="There is a scheduling conflict.")
+        if appointment_in.staff_id is not None:
+            # Conflict check for specific staff
+            conflict_query = select(Appointment).where(
+                Appointment.shop_id == appointment_in.shop_id,
+                Appointment.staff_id == appointment_in.staff_id,
+                Appointment.type == AppointmentType.SCHEDULED,
+                Appointment.status.in_([AppointmentStatus.PENDING, AppointmentStatus.APPROVED]),
+                Appointment.scheduled_time < end_time,
+                Appointment.scheduled_time + timedelta(minutes=30) > scheduled_time_naive
+            )
+            conflict_result = await db.execute(conflict_query)
+            if conflict_result.scalars().first():
+                raise HTTPException(status_code=409, detail="Seçilen usta bu saatte dolu.")
+        else:
+            # Conflict check for shop capacity (Fark Etmez)
+            # Find all staff in the shop
+            from app.models.shop_services import Staff
+            staff_result = await db.execute(select(Staff).where(Staff.shop_id == appointment_in.shop_id))
+            all_staff = staff_result.scalars().all()
+            if not all_staff:
+                raise HTTPException(status_code=400, detail="Dükkanın kayıtlı ustası bulunamadı.")
+
+            # For each staff, check if they are busy at this time
+            available_staff = []
+            for staff in all_staff:
+                staff_conflict_query = select(Appointment).where(
+                    Appointment.shop_id == appointment_in.shop_id,
+                    Appointment.staff_id == staff.id,
+                    Appointment.type == AppointmentType.SCHEDULED,
+                    Appointment.status.in_([AppointmentStatus.PENDING, AppointmentStatus.APPROVED]),
+                    Appointment.scheduled_time < end_time,
+                    Appointment.scheduled_time + timedelta(minutes=30) > scheduled_time_naive
+                )
+                staff_conflict_result = await db.execute(staff_conflict_query)
+                if not staff_conflict_result.scalars().first():
+                    available_staff.append(staff)
+
+            # Also check for appointments that don't have a staff_id yet (if any)
+            none_staff_conflict_query = select(Appointment).where(
+                Appointment.shop_id == appointment_in.shop_id,
+                Appointment.staff_id.is_(None),
+                Appointment.type == AppointmentType.SCHEDULED,
+                Appointment.status.in_([AppointmentStatus.PENDING, AppointmentStatus.APPROVED]),
+                Appointment.scheduled_time < end_time,
+                Appointment.scheduled_time + timedelta(minutes=30) > scheduled_time_naive
+            )
+            none_staff_result = await db.execute(none_staff_conflict_query)
+            none_staff_appointments = len(none_staff_result.scalars().all())
+
+            # Effective available slots
+            if len(available_staff) <= none_staff_appointments:
+                raise HTTPException(status_code=409, detail="Bu saatte tüm ustalar dolu.")
+
+            # Assign one of the available staff members
+            # We skip staff who are already "taken" by none_staff_appointments
+            # For simplicity, just pick the first available staff that isn't explicitly booked
+            new_appointment.staff_id = available_staff[none_staff_appointments].id
 
     elif appointment_in.type == AppointmentType.LIVE_QUEUE:
         # Assign next queue number
@@ -91,7 +136,9 @@ async def book_appointment(
 
     # Need to reload with relationships
     result = await db.execute(
-        select(Appointment).options(selectinload(Appointment.services)).where(Appointment.id == new_appointment.id)
+        select(Appointment)
+        .options(selectinload(Appointment.services), selectinload(Appointment.staff), selectinload(Appointment.customer))
+        .where(Appointment.id == new_appointment.id)
     )
     appointment_out = result.scalar_one()
 
@@ -115,7 +162,7 @@ async def get_my_appointments(
 ):
     result = await db.execute(
         select(Appointment)
-        .options(selectinload(Appointment.services))
+        .options(selectinload(Appointment.services), selectinload(Appointment.staff), selectinload(Appointment.customer))
         .where(Appointment.customer_id == current_user.id)
         .order_by(Appointment.created_at.desc())
     )
@@ -131,7 +178,7 @@ async def get_shop_appointments(
     # In a real app, verify that current_user is the owner of the shop or a staff member.
     result = await db.execute(
         select(Appointment)
-        .options(selectinload(Appointment.services))
+        .options(selectinload(Appointment.services), selectinload(Appointment.staff), selectinload(Appointment.customer))
         .where(Appointment.shop_id == shop_id)
         .order_by(Appointment.scheduled_time.asc(), Appointment.queue_number.asc())
     )
@@ -162,9 +209,11 @@ async def update_appointment_status(
     await db.commit()
     await db.refresh(appointment)
 
-    # Needs reload for relations
+    # Reload to get relationships
     result = await db.execute(
-        select(Appointment).options(selectinload(Appointment.services)).where(Appointment.id == appointment.id)
+        select(Appointment)
+        .options(selectinload(Appointment.services), selectinload(Appointment.staff), selectinload(Appointment.customer))
+        .where(Appointment.id == appointment.id)
     )
     appointment_out = result.scalar_one()
 

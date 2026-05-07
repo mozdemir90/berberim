@@ -3,7 +3,8 @@ from pydantic import BaseModel, ConfigDict
 from uuid import UUID
 from datetime import datetime
 from app.models.appointment import AppointmentType, AppointmentStatus
-from app.schemas.shop import ServiceOut
+from app.schemas.shop import ServiceOut, StaffOut
+from app.schemas.user import UserOut
 
 class AppointmentCreate(BaseModel):
     shop_id: UUID
@@ -26,5 +27,7 @@ class AppointmentOut(BaseModel):
     queue_number: Optional[int] = None
     created_at: datetime
     services: List[ServiceOut] = []
+    staff: Optional[StaffOut] = None
+    customer: Optional[UserOut] = None
 
     model_config = ConfigDict(from_attributes=True)

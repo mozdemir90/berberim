@@ -7,8 +7,12 @@ from sqlalchemy.orm import selectinload
 from app.api import deps
 from app.db.session import get_db
 from app.models.profile import BarberShop
-from app.models.shop_services import Service
-from app.schemas.shop import ShopCreate, ShopUpdate, ShopOut, ServiceCreate, ServiceOut
+from app.models.shop_services import Service, Staff
+from app.schemas.shop import (
+    ShopCreate, ShopUpdate, ShopOut, 
+    ServiceCreate, ServiceOut,
+    StaffCreate, StaffOut
+)
 
 router = APIRouter()
 
@@ -19,7 +23,10 @@ async def list_shops(
     limit: int = 100,
     search: Optional[str] = None
 ):
-    query = select(BarberShop).options(selectinload(BarberShop.services))
+    query = select(BarberShop).options(
+        selectinload(BarberShop.services),
+        selectinload(BarberShop.staff)
+    )
     if search:
         query = query.where(BarberShop.name.ilike(f"%{search}%"))
     query = query.offset(skip).limit(limit)
@@ -49,8 +56,11 @@ async def create_shop(
     db.add(shop)
     await db.commit()
     
-    # Eagerly load services to avoid MissingGreenlet error during serialization
-    query = select(BarberShop).options(selectinload(BarberShop.services)).where(BarberShop.id == shop.id)
+    # Eagerly load services and staff to avoid MissingGreenlet error during serialization
+    query = select(BarberShop).options(
+        selectinload(BarberShop.services),
+        selectinload(BarberShop.staff)
+    ).where(BarberShop.id == shop.id)
     result = await db.execute(query)
     shop = result.scalars().first()
     
@@ -61,7 +71,10 @@ async def get_my_shop(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(deps.get_current_active_user)
 ):
-    query = select(BarberShop).options(selectinload(BarberShop.services)).where(BarberShop.owner_id == current_user.id)
+    query = select(BarberShop).options(
+        selectinload(BarberShop.services),
+        selectinload(BarberShop.staff)
+    ).where(BarberShop.owner_id == current_user.id)
     result = await db.execute(query)
     shop = result.scalars().first()
     if not shop:
@@ -106,6 +119,11 @@ async def add_service(
     if str(shop.owner_id) != str(current_user.id):
         raise HTTPException(status_code=403, detail="Not enough permissions")
 
+    svc_query = select(Service).where(Service.shop_id == shop_id, Service.translation_key == service_in.translation_key)
+    svc_res = await db.execute(svc_query)
+    if svc_res.scalars().first():
+        raise HTTPException(status_code=400, detail="Bu isimde bir hizmet zaten var.")
+
     service = Service(
         shop_id=shop.id,
         translation_key=service_in.translation_key,
@@ -117,3 +135,78 @@ async def add_service(
     await db.commit()
     await db.refresh(service)
     return service
+
+@router.post("/{shop_id}/staff", response_model=StaffOut)
+async def add_staff(
+    shop_id: str,
+    staff_in: StaffCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(deps.get_current_active_user)
+):
+    query = select(BarberShop).where(BarberShop.id == shop_id)
+    result = await db.execute(query)
+    shop = result.scalars().first()
+    if not shop:
+        raise HTTPException(status_code=404, detail="Shop not found")
+    if str(shop.owner_id) != str(current_user.id):
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
+    staff = Staff(
+        shop_id=shop.id,
+        name=staff_in.name,
+        is_available=staff_in.is_available
+    )
+    db.add(staff)
+    await db.commit()
+    await db.refresh(staff)
+    return staff
+
+@router.delete("/{shop_id}/staff/{staff_id}")
+async def delete_staff(
+    shop_id: str,
+    staff_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(deps.get_current_active_user)
+):
+    query = select(BarberShop).where(BarberShop.id == shop_id)
+    result = await db.execute(query)
+    shop = result.scalars().first()
+    if not shop:
+        raise HTTPException(status_code=404, detail="Shop not found")
+    if str(shop.owner_id) != str(current_user.id):
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
+    staff_query = select(Staff).where(Staff.id == staff_id, Staff.shop_id == shop_id)
+    staff_result = await db.execute(staff_query)
+    staff = staff_result.scalars().first()
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff not found")
+
+    await db.delete(staff)
+    await db.commit()
+    return {"message": "Staff deleted successfully"}
+
+@router.delete("/{shop_id}/services/{service_id}")
+async def delete_service(
+    shop_id: str,
+    service_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(deps.get_current_active_user)
+):
+    query = select(BarberShop).where(BarberShop.id == shop_id)
+    result = await db.execute(query)
+    shop = result.scalars().first()
+    if not shop:
+        raise HTTPException(status_code=404, detail="Shop not found")
+    if str(shop.owner_id) != str(current_user.id):
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
+    service_query = select(Service).where(Service.id == service_id, Service.shop_id == shop_id)
+    service_result = await db.execute(service_query)
+    service = service_result.scalars().first()
+    if not service:
+        raise HTTPException(status_code=404, detail="Service not found")
+
+    await db.delete(service)
+    await db.commit()
+    return {"message": "Service deleted successfully"}

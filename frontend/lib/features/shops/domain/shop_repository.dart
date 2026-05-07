@@ -80,6 +80,15 @@ class ShopRepository {
     }
   }
 
+  Future<void> deleteService(String shopId, String serviceId) async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.delete('$_baseUrl/$shopId/services/$serviceId', options: options);
+    } on DioException catch (e) {
+      throw _handleError(e, 'Hizmet silinemedi.');
+    }
+  }
+
   Exception _handleError(DioException e, String defaultMessage) {
     if (e.response != null && e.response!.data is Map) {
       final detail = e.response!.data['detail'];
