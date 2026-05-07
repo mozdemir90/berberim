@@ -50,20 +50,3 @@ class Payment(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     user = relationship("User", backref="payments")
-
-class B2BPostType(str, enum.Enum):
-    TRADE = "TRADE"
-    JOB_LISTING = "JOB_LISTING"
-    FORUM = "FORUM"
-
-class B2BPost(Base):
-    __tablename__ = "b2b_posts"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    author_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    type = Column(Enum(B2BPostType), nullable=False)
-    title = Column(String, nullable=False)
-    content = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
-
-    author = relationship("User", backref="b2b_posts")
