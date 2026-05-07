@@ -61,6 +61,25 @@ class ShopRepository {
     }
   }
 
+  Future<Map<String, dynamic>> addStaff(String shopId, Map<String, dynamic> staffData) async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.post('$_baseUrl/$shopId/staff', data: staffData, options: options);
+      return response.data;
+    } on DioException catch (e) {
+      throw _handleError(e, 'Usta eklenemedi.');
+    }
+  }
+
+  Future<void> deleteStaff(String shopId, String staffId) async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.delete('$_baseUrl/$shopId/staff/$staffId', options: options);
+    } on DioException catch (e) {
+      throw _handleError(e, 'Usta silinemedi.');
+    }
+  }
+
   Exception _handleError(DioException e, String defaultMessage) {
     if (e.response != null && e.response!.data is Map) {
       final detail = e.response!.data['detail'];

@@ -17,95 +17,103 @@ class AppointmentsScreen extends ConsumerWidget {
 }
 
 // --- Müşteri Görünümü ---
-class _CustomerAppointmentsView extends StatelessWidget {
+class _CustomerAppointmentsView extends ConsumerWidget {
   const _CustomerAppointmentsView();
 
   @override
-  Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Randevularım'),
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Yaklaşan'),
-              Tab(text: 'Geçmiş'),
-            ],
-          ),
-        ),
-        body: TabBarView(
-          children: [
-            _buildAppointmentList([
-              _AppointmentData(
-                shopName: 'Asil Erkek Kuaförü',
-                services: 'Saç Kesimi, Sakal Traşı',
-                date: '15 Mayıs',
-                time: '14:30',
-                status: 'Onaylandı',
-                statusColor: Colors.teal,
-                price: '₺150',
-              ),
-            ]),
-            _buildAppointmentList([]),
-          ],
-        ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final allAppointments = ref.watch(barberAppointmentsProvider);
+    
+    // Geçici çözüm: Müşteri kendi randevularını görebilsin diye 'Müşteri (Siz)' ismine göre filtrelenir
+    final customerAppointments = allAppointments
+        .where((app) => app.clientName == 'Müşteri (Siz)')
+        .toList();
+
+    // Yaklaşan ve geçmiş olarak ikiye ayır
+    final now = DateTime.now();
+    final upcoming = customerAppointments.where((app) => 
+        (app.status == 'Bekliyor' || app.status == 'Onaylandı') && 
+        app.date.isAfter(now.subtract(const Duration(days: 1)))
+    ).toList();
+    
+    final past = customerAppointments.where((app) => 
+        app.status == 'Tamamlandı' || 
+        app.status == 'Reddedildi' || 
+        app.date.isBefore(now.subtract(const Duration(days: 1)))
+    ).toList();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Randevularım'),
       ),
+      body: customerAppointments.isEmpty
+          ? const Center(child: Text('Randevu bulunmuyor.', style: TextStyle(color: Colors.grey)))
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                if (upcoming.isNotEmpty) ...[
+                  const Text('Yaklaşan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A5F))),
+                  const SizedBox(height: 12),
+                  ...upcoming.map((app) => _buildAppointmentCard(app)),
+                  const SizedBox(height: 24),
+                ],
+                if (past.isNotEmpty) ...[
+                  const Text('Geçmiş', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A5F))),
+                  const SizedBox(height: 12),
+                  ...past.map((app) => _buildAppointmentCard(app)),
+                ],
+              ],
+            ),
     );
   }
 
-  Widget _buildAppointmentList(List<_AppointmentData> items) {
-    if (items.isEmpty) {
-      return const Center(child: Text('Randevu bulunmuyor.', style: TextStyle(color: Colors.grey)));
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildAppointmentCard(Appointment item) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(item.shopName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: item.statusColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(item.status, style: TextStyle(color: item.statusColor, fontWeight: FontWeight.bold, fontSize: 12)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(item.services, style: const TextStyle(color: Colors.grey)),
-                const Divider(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.calendar_today, size: 16, color: Color(0xFF1D8B96)),
-                        const SizedBox(width: 8),
-                        Text('${item.date} • ${item.time}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                    Text(item.price, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1E3A5F))),
-                  ],
+                Text(item.shopName ?? 'Berberim', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: item.statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(item.status, style: TextStyle(color: item.statusColor, fontWeight: FontWeight.bold, fontSize: 12)),
                 ),
               ],
             ),
-          ),
-        );
-      },
+            if (item.barberName != null && item.barberName!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 4.0),
+                child: Text('Usta: ${item.barberName}', style: const TextStyle(color: Color(0xFF1D8B96), fontSize: 13, fontWeight: FontWeight.w600)),
+              ),
+            const SizedBox(height: 4),
+            Text(item.services, style: const TextStyle(color: Colors.grey)),
+            const Divider(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_today, size: 16, color: Color(0xFF1D8B96)),
+                    const SizedBox(width: 8),
+                    Text('${DateFormat('d MMM', 'tr_TR').format(item.date)} • ${item.time}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                Text(item.price, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1E3A5F))),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -302,6 +310,8 @@ class _BarberScheduleViewState extends ConsumerState<_BarberScheduleView> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(appointment.clientName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: isCompact ? 14 : 16)),
+                      if (appointment.barberName != null && appointment.barberName!.isNotEmpty)
+                        Text('Usta: ${appointment.barberName}', style: TextStyle(color: const Color(0xFF1D8B96), fontSize: isCompact ? 11 : 13, fontWeight: FontWeight.w600)),
                       Text(appointment.services, style: TextStyle(color: Colors.grey, fontSize: isCompact ? 11 : 13)),
                     ],
                   ),
@@ -405,22 +415,3 @@ class _BarberScheduleViewState extends ConsumerState<_BarberScheduleView> {
   }
 }
 
-class _AppointmentData {
-  final String shopName;
-  final String services;
-  final String date;
-  final String time;
-  final String status;
-  final Color statusColor;
-  final String price;
-
-  _AppointmentData({
-    required this.shopName,
-    required this.services,
-    required this.date,
-    required this.time,
-    required this.status,
-    required this.statusColor,
-    required this.price,
-  });
-}

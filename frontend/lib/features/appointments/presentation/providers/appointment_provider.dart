@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 class Appointment {
   final String id;
   final String clientName;
+  final String? barberName;
+  final String? shopName;
   final String services;
   final String time;
   final String price;
@@ -14,6 +16,8 @@ class Appointment {
   Appointment({
     required this.id,
     required this.clientName,
+    this.barberName,
+    this.shopName,
     required this.services,
     required this.time,
     required this.price,
@@ -26,6 +30,8 @@ class Appointment {
     return Appointment(
       id: id,
       clientName: clientName,
+      barberName: barberName,
+      shopName: shopName,
       services: services,
       time: time,
       price: price,

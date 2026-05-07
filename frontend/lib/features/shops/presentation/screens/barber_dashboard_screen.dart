@@ -103,6 +103,40 @@ class BarberDashboardScreen extends ConsumerWidget {
                               );
                             },
                           ),
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Ustalarım', style: Theme.of(context).textTheme.titleMedium),
+                            IconButton(
+                              icon: const Icon(Icons.person_add),
+                              onPressed: () => _showAddStaffDialog(context, ref, shop['id']),
+                            )
+                          ],
+                        ),
+                        const Divider(),
+                        Expanded(
+                          child: (shop['staff'] as List<dynamic>? ?? []).isEmpty
+                              ? const Center(child: Text('Henüz usta eklenmemiş.'))
+                              : ListView.builder(
+                                  itemCount: (shop['staff'] as List<dynamic>? ?? []).length,
+                                  itemBuilder: (context, index) {
+                                    final staff = shop['staff'][index];
+                                    return ListTile(
+                                      leading: const CircleAvatar(
+                                        backgroundColor: Color(0xFF1D8B96),
+                                        child: Icon(Icons.person, color: Colors.white),
+                                      ),
+                                      title: Text(staff['name']),
+                                      subtitle: Text(staff['is_available'] ? 'Müsait' : 'Meşgul'),
+                                      trailing: IconButton(
+                                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                        onPressed: () => _confirmDeleteStaff(context, ref, shop['id'], staff['id'], staff['name']),
+                                      ),
+                                    );
+                                  },
+                                ),
                         )
                       ],
                     ),
@@ -243,6 +277,69 @@ class BarberDashboardScreen extends ConsumerWidget {
           ],
         );
       },
+    );
+  }
+
+  void _showAddStaffDialog(BuildContext context, WidgetRef ref, String shopId) {
+    final nameController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Yeni Usta Ekle'),
+          content: TextField(
+            controller: nameController,
+            decoration: const InputDecoration(labelText: 'Usta Adı Soyadı'),
+            textCapitalization: TextCapitalization.words,
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('İptal')),
+            ElevatedButton(
+              onPressed: () async {
+                final repo = ref.read(shopRepositoryProvider);
+                try {
+                  await repo.addStaff(shopId, {
+                    'name': nameController.text,
+                    'is_available': true,
+                  });
+                  Navigator.pop(context);
+                  ref.invalidate(myShopProvider);
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                }
+              },
+              child: const Text('Ekle'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteStaff(BuildContext context, WidgetRef ref, String shopId, String staffId, String staffName) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Ustayı Sil'),
+        content: Text('$staffName isimli ustayı silmek istediğinize emin misiniz?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('İptal')),
+          TextButton(
+            onPressed: () async {
+              final repo = ref.read(shopRepositoryProvider);
+              try {
+                await repo.deleteStaff(shopId, staffId);
+                Navigator.pop(context);
+                ref.invalidate(myShopProvider);
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+              }
+            },
+            child: const Text('Sil', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
     );
   }
 }

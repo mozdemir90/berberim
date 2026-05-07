@@ -26,8 +26,15 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       appBar: AppBar(
         title: Text(widget.shop['name'] ?? 'Randevu Al'),
         leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.pop(context),
+          icon: Icon(_currentStep > 0 ? Icons.arrow_back : Icons.close),
+          onPressed: () {
+            if (_currentStep > 0) {
+              setState(() => _currentStep--);
+              _pageController.animateToPage(_currentStep, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+            } else {
+              Navigator.pop(context);
+            }
+          },
         ),
       ),
       body: Center(
@@ -44,6 +51,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                   physics: const NeverScrollableScrollPhysics(),
                   children: [
                     _buildServiceSelection(bookingState),
+                    _buildStaffSelection(bookingState),
                     _buildDateTimeSelection(bookingState),
                   ],
                 ),
@@ -67,40 +75,50 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         children: [
           _stepCircle(0, 'Hizmetler', _currentStep >= 0),
           _stepLine(_currentStep >= 1),
-          _stepCircle(1, 'Tarih & Saat', _currentStep >= 1),
+          _stepCircle(1, 'Usta Seçimi', _currentStep >= 1),
+          _stepLine(_currentStep >= 2),
+          _stepCircle(2, 'Tarih & Saat', _currentStep >= 2),
         ],
       ),
     );
   }
 
   Widget _stepCircle(int index, String label, bool isActive) {
-    return Column(
-      children: [
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          width: 30,
-          height: 30,
-          decoration: BoxDecoration(
-            color: isActive ? const Color(0xFF1D8B96) : Colors.grey[300],
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Text(
-              '${index + 1}',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+    return GestureDetector(
+      onTap: () {
+        if (index < _currentStep) {
+          setState(() => _currentStep = index);
+          _pageController.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+        }
+      },
+      child: Column(
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: isActive ? const Color(0xFF1D8B96) : Colors.grey[300],
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                '${index + 1}',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: isActive ? const Color(0xFF1E3A5F) : Colors.grey,
-            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: isActive ? const Color(0xFF1E3A5F) : Colors.grey,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -180,6 +198,92 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildStaffSelection(BookingState state) {
+    final staffList = widget.shop['staff'] as List<dynamic>? ?? [];
+
+    if (staffList.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.0),
+          child: Text(
+            'Bu dükkanda henüz usta tanımlanmamış.\nLütfen "Herhangi biri" seçeneği ile devam edin.', 
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: staffList.length + 1,
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          final isSelected = state.selectedStaff == null;
+          return _buildStaffItem(
+            name: 'Fark Etmez (Herhangi Biri)',
+            isSelected: isSelected,
+            onTap: () => ref.read(bookingProvider.notifier).selectStaff(null),
+          );
+        }
+
+        final staff = staffList[index - 1];
+        final isSelected = state.selectedStaff?['id'] == staff['id'];
+
+        return _buildStaffItem(
+          name: staff['name'],
+          isSelected: isSelected,
+          onTap: () => ref.read(bookingProvider.notifier).selectStaff(staff),
+        );
+      },
+    );
+  }
+
+  Widget _buildStaffItem({required String name, required bool isSelected, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF1D8B96) : Colors.transparent,
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isSelected ? 0.1 : 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const CircleAvatar(
+              backgroundColor: Color(0xFFF1F5F9),
+              child: Icon(Icons.person, color: Color(0xFF1D8B96)),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                name,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+            Icon(
+              isSelected ? Icons.check_circle : Icons.circle_outlined,
+              color: isSelected ? const Color(0xFF1D8B96) : Colors.grey[400],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -264,7 +368,28 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
             itemBuilder: (context, index) {
               final time = times[index];
               final isSelected = state.selectedTime == time;
-              final isBooked = index % 5 == 0; // Mock booked slots
+              
+              final allAppointments = ref.watch(barberAppointmentsProvider);
+              final selectedStaffName = state.selectedStaff?['name'] ?? 'Herhangi Biri';
+              final selectedDate = state.selectedDate ?? now;
+              
+              final activeAppointmentsAtTime = allAppointments.where((app) => 
+                app.date.year == selectedDate.year &&
+                app.date.month == selectedDate.month &&
+                app.date.day == selectedDate.day &&
+                app.time == time &&
+                app.status != 'Reddedildi' && 
+                app.status != 'İptal'
+              ).toList();
+
+              bool isBooked = false;
+              if (selectedStaffName == 'Herhangi Biri') {
+                final staffCount = (widget.shop['staff'] as List<dynamic>? ?? []).length;
+                final totalCapacity = staffCount > 0 ? staffCount : 1;
+                isBooked = activeAppointmentsAtTime.length >= totalCapacity;
+              } else {
+                isBooked = activeAppointmentsAtTime.any((app) => app.barberName == selectedStaffName);
+              }
 
               return GestureDetector(
                 onTap: isBooked ? null : () => ref.read(bookingProvider.notifier).selectTime(time),
@@ -301,7 +426,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   Widget _buildBottomActionBar(BookingState state) {
     final canGoNext = _currentStep == 0 
         ? state.selectedServices.isNotEmpty 
-        : state.selectedTime != null;
+        : (_currentStep == 1 ? true : state.selectedTime != null);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -331,7 +456,11 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
             flex: 2,
             child: ElevatedButton(
               onPressed: canGoNext ? _handleNext : null,
-              child: Text(_currentStep == 0 ? 'Tarih Seçimine İlerle' : 'Randevuyu Onayla'),
+              child: Text(
+                _currentStep == 0 
+                    ? 'Usta Seçimine İlerle' 
+                    : (_currentStep == 1 ? 'Tarih Seçimine İlerle' : 'Randevuyu Onayla')
+              ),
             ),
           ),
         ],
@@ -340,22 +469,26 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   }
 
   void _handleNext() {
-    if (_currentStep == 0) {
-      setState(() => _currentStep = 1);
-      _pageController.animateToPage(1, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+    if (_currentStep < 2) {
+      setState(() => _currentStep++);
+      _pageController.animateToPage(_currentStep, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
     } else {
       final state = ref.read(bookingProvider);
       
       // Create new appointment object
       final newAppointment = Appointment(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        clientName: 'Müşteri (Siz)', // In real app, this would be auth user name
-        services: state.selectedServices.map((s) => s['translation_key']).join(', '),
-        time: state.selectedTime!,
+        clientName: 'Müşteri (Siz)',
+        barberName: state.selectedStaff?['name'] ?? 'Herhangi Biri',
+        shopName: widget.shop['name'] ?? 'Berberim',
+        services: state.selectedServices.isNotEmpty 
+            ? state.selectedServices.map((s) => s['translation_key'] ?? 'Hizmet').join(', ')
+            : 'Belirtilmedi',
+        time: state.selectedTime ?? '--:--',
         price: '₺${state.totalAmount.toInt()}',
         status: 'Bekliyor',
         statusColor: Colors.orange,
-        date: state.selectedDate!,
+        date: state.selectedDate ?? DateTime.now(),
       );
 
       // Add to global state
